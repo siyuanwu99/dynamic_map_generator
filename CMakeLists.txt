@@ -3,8 +3,8 @@ project(map_generator)
 
 set(CMAKE_BUILD_TYPE "Release")
 set(CMAKE_CXX_FLAGS "-std=c++11")
-ADD_COMPILE_OPTIONS(-std=c++11 )
-ADD_COMPILE_OPTIONS(-std=c++14 )
+ADD_COMPILE_OPTIONS(-std=c++11)
+ADD_COMPILE_OPTIONS(-std=c++14)
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g")
 
 find_package(catkin REQUIRED COMPONENTS
@@ -20,22 +20,26 @@ find_package(Eigen3 REQUIRED)
 catkin_package()
 
 include_directories(
-# include
+  include
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIR}
   ${PCL_INCLUDE_DIRS}
 )
 
-add_executable (random_forest src/random_forest_sensing.cpp )
+add_executable(random_forest src/random_forest_sensing.cpp)
 target_link_libraries(random_forest
   ${catkin_LIBRARIES}
   ${PCL_LIBRARIES})
-  
-  
-  add_executable (click_map src/click_map.cpp )
+
+add_executable(dynamic_forest src/dynamic_forest_sensing.cpp)
+target_link_libraries(dynamic_forest
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES})
+
+add_executable(click_map src/click_map.cpp)
 target_link_libraries(click_map
   ${catkin_LIBRARIES}
-  ${PCL_LIBRARIES}) 
+  ${PCL_LIBRARIES})
 
 install(TARGETS random_forest click_map
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}

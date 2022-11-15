@@ -258,7 +258,7 @@ int main(int argc, char** argv) {
   n.param("ObstacleShape/theta", theta_, 7.0);
 
   n.param("sensing/radius", _sensing_range, 10.0);
-  n.param("sensing/radius", _sense_rate, 10.0);
+  n.param("sensing/rate", _sense_rate, 10.0);
 
   _x_l = -_x_size / 2.0;
   _x_h = +_x_size / 2.0;

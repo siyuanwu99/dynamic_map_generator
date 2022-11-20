@@ -36,6 +36,12 @@ target_link_libraries(dynamic_forest
   ${catkin_LIBRARIES}
   ${PCL_LIBRARIES})
 
+add_executable(dynamic_forest_seq src/dynamic_forest_seq_sensing.cpp)
+target_link_libraries(dynamic_forest_seq
+    ${catkin_LIBRARIES}
+    ${PCL_LIBRARIES})
+  
+
 add_executable(click_map src/click_map.cpp)
 target_link_libraries(click_map
   ${catkin_LIBRARIES}

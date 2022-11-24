@@ -59,7 +59,7 @@ vector<double> _state;
 
 int         _obs_num;
 double      _x_size, _y_size, _z_size;
-double      _x_l, _x_h, _y_l, _y_h, _w_l, _w_h, _h_l, _h_h;
+double      _x_l, _x_h, _y_l, _y_h, _w_l, _w_h, _h_l, _h_h, _v_h;
 double      _z_limit, _sensing_range, _resolution, _sense_rate, _init_x, _init_y;
 std::string _frame_id;
 
@@ -103,7 +103,7 @@ void RandomMapGenerate() {
   _dyn_cylinders.reserve(_obs_num);
   for (int i = 0; i < _obs_num; i++) {
     dynamic_map_objects::MovingCylinder cylinder(_x_l, _x_h, _y_l, _y_h, _w_l, _w_h, _h_l, _h_h,
-                                                 eng, _resolution);
+                                                 _v_h, eng, _resolution);
     _dyn_cylinders.push_back(cylinder);
   }
 
@@ -162,8 +162,8 @@ void pubSensedPoints() {
     pts.y = pose.position.y;
     pts.z = pose.position.z;
     cylinder_state.points.push_back(pts);
-    pts.x += dyn_cld.vx;
-    pts.y += dyn_cld.vy;
+    pts.x += dyn_cld.vx * _sense_rate;
+    pts.y += dyn_cld.vy * _sense_rate;
     cylinder_state.points.push_back(pts);
     cylinder_state.scale.x = dyn_cld.w;
     cylinders_state_list.markers.push_back(cylinder_state);
@@ -225,6 +225,7 @@ int main(int argc, char** argv) {
   n.param("ObstacleShape/upper_rad", _w_h, 0.8);
   n.param("ObstacleShape/lower_hei", _h_l, 3.0);
   n.param("ObstacleShape/upper_hei", _h_h, 7.0);
+  n.param("ObstacleShape/upper_vel", _v_h, 0.1);
   n.param("ObstacleShape/set_cylinder", _set_cylinder, false);
 
   n.param("sensing/radius", _sensing_range, 10.0);

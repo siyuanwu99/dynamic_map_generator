@@ -4,10 +4,10 @@
  * @brief generate a sequence of dynamic forest maps for fake sensing
  * To generate the current global map and local map in next time steps,
  * we need to publish current global point cloud and velocity
- * 
+ *
  * The cylinder velocity is published as the difference between current position
  * and next position, which is (marker.points[1] - marker.points[0])
- * 
+ *
  * @version 1.0
  * @date 2022-11-20
  *
@@ -66,6 +66,7 @@ std::string _frame_id;
 bool _map_ok       = false;
 bool _has_odom     = false;
 bool _set_cylinder = false;
+bool _test_mode    = false;
 
 /* map sequence settings */
 bool   _future_map = false;
@@ -124,17 +125,19 @@ void pubSensedPoints() {
   cylinders_vis.markers.reserve(_obs_num);
   cylinders_state_list.markers.clear();
   cylinders_state_list.markers.reserve(_obs_num);
-  cylinder_mk.header.stamp    = ros::Time::now();
-  cylinder_mk.id             = 0;
+  cylinder_mk.header.stamp = ros::Time::now();
+  cylinder_mk.id           = 0;
 
   cylinder_state.header.stamp = ros::Time::now();
   cylinder_state.points.clear();
   cylinder_state.id = 0;
-  
+
   pcl::PointCloud<pcl::PointXYZ> cloud_all;
 
   for (auto& dyn_cld : _dyn_cylinders) {
-    dyn_cld.update();
+    if (!_test_mode) {
+      dyn_cld.update();
+    }
     cloud_all += dyn_cld._cloud;
 
     // publish cylinder markers
@@ -212,6 +215,7 @@ int main(int argc, char** argv) {
   n.param("map/x_size", _x_size, 50.0);
   n.param("map/y_size", _y_size, 50.0);
   n.param("map/z_size", _z_size, 5.0);
+  n.param("map/test", _test_mode, false);
 
   // clearance for multi robots.
   _x_size -= 2.0;

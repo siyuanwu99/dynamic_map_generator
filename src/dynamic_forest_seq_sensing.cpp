@@ -68,6 +68,13 @@ bool _has_odom     = false;
 bool _set_cylinder = false;
 bool _test_mode    = false;
 
+/**@brief map mode
+ * 0: randomize both vx and vy
+ * 1: randomize vx, vy = 0
+ * 2: randomize vy, vx = 0
+ */
+int _mode = 0;
+
 /* map sequence settings */
 bool   _future_map = false;
 int    _num_future_map;
@@ -105,6 +112,7 @@ void RandomMapGenerate() {
   for (int i = 0; i < _obs_num; i++) {
     dynamic_map_objects::MovingCylinder cylinder(_x_l, _x_h, _y_l, _y_h, _w_l, _w_h, _h_l, _h_h,
                                                  _v_h, eng, _resolution);
+    cylinder.setMode(_mode);
     _dyn_cylinders.push_back(cylinder);
   }
 
@@ -234,6 +242,7 @@ int main(int argc, char** argv) {
 
   n.param("sensing/radius", _sensing_range, 10.0);
   n.param("sensing/rate", _sense_rate, 10.0);
+  n.param("mode", _mode, 0);
 
   _x_l = -_x_size / 2.0;
   _x_h = +_x_size / 2.0;

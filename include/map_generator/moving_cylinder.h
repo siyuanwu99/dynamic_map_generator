@@ -27,6 +27,7 @@ class MovingCylinder {
   std::uniform_real_distribution<double> _rand_x, _rand_y, _rand_w, _rand_h, _rand_v;
   double                                 _x_l, _x_h, _y_l, _y_h, _w_l, _w_h, _h_l, _h_h, _v_h;
   double                                 _resolution;
+  int                                    _mode = 0;
 
  public:
   pcl::PointCloud<pcl::PointXYZ> _cloud;
@@ -36,16 +37,42 @@ class MovingCylinder {
   double                         h;   // height
   double                         vx;  // x velocity
   double                         vy;  // y velocity
-  MovingCylinder(double x_l, double x_h, double y_l, double y_h, double w_l, double w_h, double h_l,
-                 double h_h, double v_h, std::default_random_engine &eng, double _resolution);
+  MovingCylinder(double                      x_l,
+                 double                      x_h,
+                 double                      y_l,
+                 double                      y_h,
+                 double                      w_l,
+                 double                      w_h,
+                 double                      h_l,
+                 double                      h_h,
+                 double                      v_h,
+                 std::default_random_engine &eng,
+                 double                      _resolution);
   ~MovingCylinder() {}
+  void setMode(int m);
   void update();
 };
 
-MovingCylinder::MovingCylinder(double x_l, double x_h, double y_l, double y_h, double w_l,
-                               double w_h, double h_l, double h_h, double v_h, std::default_random_engine &eng,
-                               double resolution)
-    : _x_l(x_l), _x_h(x_h), _y_l(y_l), _y_h(y_h), _w_l(w_l), _w_h(w_h), _h_l(h_l), _h_h(h_h), _v_h(v_h) {
+MovingCylinder::MovingCylinder(double                      x_l,
+                               double                      x_h,
+                               double                      y_l,
+                               double                      y_h,
+                               double                      w_l,
+                               double                      w_h,
+                               double                      h_l,
+                               double                      h_h,
+                               double                      v_h,
+                               std::default_random_engine &eng,
+                               double                      resolution)
+    : _x_l(x_l)
+    , _x_h(x_h)
+    , _y_l(y_l)
+    , _y_h(y_h)
+    , _w_l(w_l)
+    , _w_h(w_h)
+    , _h_l(h_l)
+    , _h_h(h_h)
+    , _v_h(v_h) {
   _rand_x     = std::uniform_real_distribution<double>(x_l, x_h);
   _rand_y     = std::uniform_real_distribution<double>(y_l, y_h);
   _rand_w     = std::uniform_real_distribution<double>(w_l, w_h);
@@ -95,6 +122,20 @@ MovingCylinder::MovingCylinder(double x_l, double x_h, double y_l, double y_h, d
   _cloud.height   = 1;
   _cloud.is_dense = true;
 };  // namespace dynamic_map_objects
+
+void MovingCylinder::setMode(int m) {
+  // generate random veocity
+  if (m == 0) {
+    ;
+  } else if (m == 1) {
+    vy = 0;
+  } else if (m == 2) {
+    vx = 0;
+  } else {
+    vx = 0;
+    vy = 0;
+  }
+}
 
 void MovingCylinder::update() {
   x += vx;

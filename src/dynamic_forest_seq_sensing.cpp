@@ -37,6 +37,7 @@
 #include <Eigen/Eigen>
 #include <random>
 
+#include "map_generator/moving_circle.h"
 #include "map_generator/moving_cylinder.h"
 
 using namespace std;
@@ -57,9 +58,10 @@ ros::Publisher click_map_pub_, _cylinder_state_pub;
 
 vector<double> _state;
 
-int         _obs_num;
+int         _obs_num, _circle_num;
 double      _x_size, _y_size, _z_size;
-double      _x_l, _x_h, _y_l, _y_h, _w_l, _w_h, _h_l, _h_h, _v_h;
+double      _x_l, _x_h, _y_l, _y_h, _w_l, _w_h, _h_l, _h_h, _v_h, _dr;
+double      _radius_h, _radius_l, _z_l, _z_h, _theta, _omega_h;
 double      _z_limit, _sensing_range, _resolution, _sense_rate, _init_x, _init_y;
 std::string _frame_id;
 
@@ -83,14 +85,17 @@ double _future_step_size;
 sensor_msgs::PointCloud2 globalMap_pcd;
 sensor_msgs::PointCloud2 globalCylinders_pcd;
 
-pcl::PointCloud<pcl::PointXYZ> cylinders;
+pcl::PointCloud<pcl::PointXYZ> clouds;
 
 visualization_msgs::MarkerArray cylinders_vis;
 visualization_msgs::Marker      cylinder_mk;
-visualization_msgs::MarkerArray cylinders_state_list;
-visualization_msgs::Marker      cylinder_state;
+visualization_msgs::MarkerArray circle_vis;
+visualization_msgs::Marker      circle_mk;
+visualization_msgs::MarkerArray obstacle_state_list;
+visualization_msgs::Marker      obstacle_state;
 
 std::vector<dynamic_map_objects::MovingCylinder> _dyn_cylinders;
+std::vector<dynamic_map_objects::MovingCircle>   _dyn_circles;
 
 /**
  * @brief generate random map
@@ -116,6 +121,14 @@ void RandomMapGenerate() {
     _dyn_cylinders.push_back(cylinder);
   }
 
+  _dyn_circles.clear();
+  _dyn_circles.reserve(_circle_num);
+  for (int i = 0; i < _circle_num; i++) {
+    dynamic_map_objects::MovingCircle circle(_x_l, _x_h, _y_l, _y_h, _z_l, _z_h, _radius_l,
+                                             _radius_h, _dr, _v_h, eng, _resolution);
+    _dyn_circles.push_back(circle);
+  }
+
   ROS_WARN("Finished generate random map ");
 
   _map_ok = true;
@@ -127,18 +140,18 @@ void RandomMapGenerate() {
  */
 void pubSensedPoints() {
   // concatenate all points
-  cylinders.points.clear();
-  cylinders.points.reserve(_obs_num);
+  clouds.points.clear();
+  clouds.points.reserve(_obs_num);
   cylinders_vis.markers.clear();
   cylinders_vis.markers.reserve(_obs_num);
-  cylinders_state_list.markers.clear();
-  cylinders_state_list.markers.reserve(_obs_num);
+  obstacle_state_list.markers.clear();
+  obstacle_state_list.markers.reserve(_obs_num);
   cylinder_mk.header.stamp = ros::Time::now();
   cylinder_mk.id           = 0;
 
-  cylinder_state.header.stamp = ros::Time::now();
-  cylinder_state.points.clear();
-  cylinder_state.id = 0;
+  obstacle_state.header.stamp = ros::Time::now();
+  obstacle_state.points.clear();
+  obstacle_state.id = 0;
 
   pcl::PointCloud<pcl::PointXYZ> cloud_all;
 
@@ -153,11 +166,11 @@ void pubSensedPoints() {
     pt_center.x = dyn_cld.x;
     pt_center.y = dyn_cld.y;
     pt_center.z = dyn_cld.w;
-    cylinders.points.push_back(pt_center);
+    clouds.points.push_back(pt_center);
 
     geometry_msgs::Pose pose;
-    pose.position.x    = pt_center.x;
-    pose.position.y    = pt_center.y;
+    pose.position.x    = dyn_cld.x;
+    pose.position.y    = dyn_cld.y;
     pose.position.z    = 0.5 * dyn_cld.h;
     pose.orientation.w = 1.0;
 
@@ -167,18 +180,62 @@ void pubSensedPoints() {
     cylinders_vis.markers.push_back(cylinder_mk);
     cylinder_mk.id += 1;
 
-    cylinder_state.points.clear();
+    obstacle_state.points.clear();
     geometry_msgs::Point pts;
     pts.x = pose.position.x;
     pts.y = pose.position.y;
     pts.z = pose.position.z;
-    cylinder_state.points.push_back(pts);
+    obstacle_state.points.push_back(pts);
     pts.x += dyn_cld.vx * _sense_rate;
     pts.y += dyn_cld.vy * _sense_rate;
-    cylinder_state.points.push_back(pts);
-    cylinder_state.scale.x = dyn_cld.w;
-    cylinders_state_list.markers.push_back(cylinder_state);
-    cylinder_state.id += 1;
+    obstacle_state.points.push_back(pts);
+    obstacle_state.scale.x = dyn_cld.w;
+    obstacle_state.scale.y = dyn_cld.w;
+    obstacle_state_list.markers.push_back(obstacle_state);
+    obstacle_state.id += 1;
+  }
+
+  for (auto& dyn_crl : _dyn_circles) {
+    if (!_test_mode) {
+      dyn_crl.update();
+    }
+    cloud_all += dyn_crl._cloud;
+    pcl::PointXYZ pt_center;
+    pt_center.x = dyn_crl.x;
+    pt_center.y = dyn_crl.y;
+    pt_center.z = dyn_crl.z;
+    clouds.points.push_back(pt_center);
+
+    geometry_msgs::Pose pose;
+    pose.position.x    = dyn_crl.x;
+    pose.position.y    = dyn_crl.y;
+    pose.position.z    = dyn_crl.z;
+    pose.orientation.w = dyn_crl.q.w();
+    pose.orientation.x = dyn_crl.q.x();
+    pose.orientation.y = dyn_crl.q.y();
+    pose.orientation.z = dyn_crl.q.z();
+
+    cylinder_mk.pose    = pose;
+    cylinder_mk.scale.x = 2 * dyn_crl.r2;
+    cylinder_mk.scale.y = 2 * dyn_crl.r1;
+    cylinder_mk.scale.z = 0.1;
+    cylinders_vis.markers.push_back(cylinder_mk);
+    cylinder_mk.id += 1;
+
+    obstacle_state.points.clear();
+    geometry_msgs::Point pts;
+    pts.x = pose.position.x;
+    pts.y = pose.position.y;
+    pts.z = pose.position.z;
+    obstacle_state.points.push_back(pts);
+    pts.x += dyn_crl.vx * _sense_rate;
+    pts.y += dyn_crl.vy * _sense_rate;
+    obstacle_state.points.push_back(pts);
+    obstacle_state.scale.x = dyn_crl.r2;
+    obstacle_state.scale.y = dyn_crl.r1;
+    obstacle_state.scale.z = 0.1;
+    obstacle_state_list.markers.push_back(obstacle_state);
+    obstacle_state.id += 1;
   }
 
   cloud_all.width    = cloud_all.points.size();
@@ -195,12 +252,12 @@ void pubSensedPoints() {
   _all_map_cloud_pub.publish(globalMap_pcd);
 
   // publish cylinder markers
-  pcl::toROSMsg(cylinders, globalCylinders_pcd);
+  pcl::toROSMsg(clouds, globalCylinders_pcd);
   globalCylinders_pcd.header.frame_id = _frame_id;
   _all_map_cylinder_pub.publish(globalCylinders_pcd);
 
   _all_map_cylinder_pub_vis.publish(cylinders_vis);
-  _cylinder_state_pub.publish(cylinders_state_list);
+  _cylinder_state_pub.publish(obstacle_state_list);
   return;
 }
 
@@ -240,6 +297,15 @@ int main(int argc, char** argv) {
   n.param("ObstacleShape/upper_vel", _v_h, 0.1);
   n.param("ObstacleShape/set_cylinder", _set_cylinder, false);
 
+  n.param("map/circle_num", _circle_num, 0);
+  n.param("ObstacleShape/radius_l", _radius_l, 7.0);
+  n.param("ObstacleShape/radius_h", _radius_h, 7.0);
+  n.param("ObstacleShape/z_l", _z_l, 7.0);
+  n.param("ObstacleShape/z_h", _z_h, 7.0);
+  n.param("ObstacleShape/dr", _dr, 0.2);
+  n.param("ObstacleShape/theta", _theta, 7.0);
+  n.param("ObstacleShape/omega", _omega_h, 2.0);
+
   n.param("sensing/radius", _sensing_range, 10.0);
   n.param("sensing/rate", _sense_rate, 10.0);
   n.param("mode", _mode, 0);
@@ -262,8 +328,8 @@ int main(int argc, char** argv) {
   cylinder_mk.color.b         = 0.5;
   cylinder_mk.color.a         = 0.6;
 
-  cylinder_state.header = cylinder_mk.header;
-  cylinder_state.type   = visualization_msgs::Marker::ARROW;
+  obstacle_state.header = cylinder_mk.header;
+  obstacle_state.type   = visualization_msgs::Marker::ARROW;
 
   ros::Duration(0.5).sleep();
 

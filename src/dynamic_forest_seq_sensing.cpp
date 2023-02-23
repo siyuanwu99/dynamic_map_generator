@@ -180,6 +180,11 @@ void pubSensedPoints() {
     cylinders_vis.markers.push_back(cylinder_mk);
     cylinder_mk.id += 1;
 
+    obstacle_state.pose               = pose;
+    obstacle_state.pose.position.x    = dyn_cld.x;
+    obstacle_state.pose.position.y    = dyn_cld.y;
+    obstacle_state.pose.position.z    = 0.5 * dyn_cld.h;
+    obstacle_state.pose.orientation.w = 1.0;
     obstacle_state.points.clear();
     geometry_msgs::Point pts;
     pts.x = pose.position.x;
@@ -191,6 +196,7 @@ void pubSensedPoints() {
     obstacle_state.points.push_back(pts);
     obstacle_state.scale.x = dyn_cld.w;
     obstacle_state.scale.y = dyn_cld.w;
+    obstacle_state.type    = visualization_msgs::Marker::CYLINDER;
     obstacle_state_list.markers.push_back(obstacle_state);
     obstacle_state.id += 1;
   }
@@ -222,6 +228,14 @@ void pubSensedPoints() {
     cylinders_vis.markers.push_back(cylinder_mk);
     cylinder_mk.id += 1;
 
+    obstacle_state.pose.position.x    = dyn_crl.x;
+    obstacle_state.pose.position.y    = dyn_crl.y;
+    obstacle_state.pose.position.z    = dyn_crl.z;
+    obstacle_state.pose.orientation.w = dyn_crl.q.w();
+    obstacle_state.pose.orientation.x = dyn_crl.q.x();
+    obstacle_state.pose.orientation.y = dyn_crl.q.y();
+    obstacle_state.pose.orientation.z = dyn_crl.q.z();
+
     obstacle_state.points.clear();
     geometry_msgs::Point pts;
     pts.x = pose.position.x;
@@ -231,9 +245,10 @@ void pubSensedPoints() {
     pts.x += dyn_crl.vx * _sense_rate;
     pts.y += dyn_crl.vy * _sense_rate;
     obstacle_state.points.push_back(pts);
-    obstacle_state.scale.x = dyn_crl.r2;
-    obstacle_state.scale.y = dyn_crl.r1;
+    obstacle_state.scale.x = 2 * dyn_crl.r2;
+    obstacle_state.scale.y = 2 * dyn_crl.r1;
     obstacle_state.scale.z = 0.1;
+    obstacle_state.type    = visualization_msgs::Marker::SPHERE;
     obstacle_state_list.markers.push_back(obstacle_state);
     obstacle_state.id += 1;
   }

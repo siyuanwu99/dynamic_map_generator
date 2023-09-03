@@ -26,6 +26,19 @@ include_directories(
   ${PCL_INCLUDE_DIRS}
 )
 
+link_directories(${PCL_LIBRARY_DIRS})
+
+add_library(${PROJECT_NAME}
+  src/random_dynamic_map.cpp
+)
+
+add_executable(random_env src/random_env_sensing.cpp)
+target_link_libraries(random_env
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES})
+
+
 add_executable(random_forest src/random_forest_sensing.cpp)
 target_link_libraries(random_forest
   ${catkin_LIBRARIES}
@@ -40,7 +53,7 @@ add_executable(dynamic_forest_seq src/dynamic_forest_seq_sensing.cpp)
 target_link_libraries(dynamic_forest_seq
     ${catkin_LIBRARIES}
     ${PCL_LIBRARIES})
-  
+
 
 add_executable(click_map src/click_map.cpp)
 target_link_libraries(click_map

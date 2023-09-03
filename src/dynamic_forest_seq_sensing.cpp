@@ -58,6 +58,7 @@ ros::Publisher click_map_pub_, _cylinder_state_pub;
 
 vector<double> _state;
 
+int         _seed;
 int         _obs_num, _circle_num;
 double      _x_size, _y_size, _z_size;
 double      _x_l, _x_h, _y_l, _y_h, _w_l, _w_h, _h_l, _h_h, _v_h, _dr;
@@ -289,6 +290,7 @@ int main(int argc, char** argv) {
 
   n.param("init_state_x", _init_x, 0.0);
   n.param("init_state_y", _init_y, 0.0);
+  n.param("map/seed", _seed, 0);
   n.param("map/future", _future_map, true);
   n.param("map/future_num", _num_future_map, 6);
   n.param("map/time_step", _future_step_size, 0.2);
@@ -324,6 +326,9 @@ int main(int argc, char** argv) {
   n.param("sensing/radius", _sensing_range, 10.0);
   n.param("sensing/rate", _sense_rate, 10.0);
   n.param("mode", _mode, 0);
+
+  /* random seeds */
+  eng.seed(_seed);
 
   _x_l = -_x_size / 2.0;
   _x_h = +_x_size / 2.0;

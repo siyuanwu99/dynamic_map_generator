@@ -1,3 +1,4 @@
+<?xml version=1.0?>
 <launch>
     <!-- number of moving objects -->
     <arg name="obj_num" value="10" />

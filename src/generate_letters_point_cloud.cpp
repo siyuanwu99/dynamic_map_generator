@@ -30,7 +30,7 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr convertVTKtoPCL(vtkSmartPointer<vtkPolyData>
   for (vtkIdType i = 0; i < polydata->GetNumberOfPoints(); i++) {
     double p[3];
     polydata->GetPoint(i, p);
-    cloud->points.push_back(pcl::PointXYZ(p[0], p[1], p[2]));
+    cloud->points.push_back(pcl::PointXYZ(p[2], -p[0], p[1]));
   }
   cloud->width  = cloud->points.size();
   cloud->height = 1;
@@ -46,7 +46,7 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr generateDensePointCloudFromText(const std::s
 
   // Scale for visibility
   vtkSmartPointer<vtkTransform> transform = vtkSmartPointer<vtkTransform>::New();
-  transform->Scale(10.0, 10.0, 10.0);
+  transform->Scale(4.0, 4.0, 4.0);
 
   vtkSmartPointer<vtkTransformPolyDataFilter> transformFilter =
       vtkSmartPointer<vtkTransformPolyDataFilter>::New();
@@ -89,17 +89,20 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr generateDensePointCloudFromText(const std::s
 }
 
 int main(int argc, char **argv) {
-  int    numLayers      = 5;    // e.g., 5 layers
-  double layerThickness = 1.0;  // e.g., 1 units of thickness per layer
+  int    numLayers      = 5;     // e.g., 5 layers
+  double layerThickness = 0.10;  // e.g., 1 units of thickness per layer
 
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud =
-      generateDensePointCloudFromText("TUD", numLayers, layerThickness);
+      generateDensePointCloudFromText("TUDelft", numLayers, layerThickness);
 
   // Visualize
   pcl::visualization::CloudViewer viewer("3D Text Viewer");
   viewer.showCloud(cloud);
   while (!viewer.wasStopped()) {
   }
+
+  /* save to pcd file */
+  pcl::io::savePCDFileASCII("text.pcd", *cloud);
 
   return 0;
 }

@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
 )
 find_package(PCL 1.7 REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(VTK REQUIRED)  # for pcd generation
 
 catkin_package()
 
@@ -37,6 +38,23 @@ target_link_libraries(random_env
   ${PROJECT_NAME}
   ${catkin_LIBRARIES}
   ${PCL_LIBRARIES})
+
+add_executable(
+    pcl_render_node
+    src/pointcloud_render_node.cpp
+)
+
+target_link_libraries( pcl_render_node
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
+)
+
+add_executable(generate_letters src/generate_letters_point_cloud.cpp)
+target_link_libraries(generate_letters
+  ${PCL_LIBRARIES}
+  ${VTK_LIBRARIES}
+)
 
 
 add_executable(random_forest src/random_forest_sensing.cpp)

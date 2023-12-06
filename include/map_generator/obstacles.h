@@ -11,13 +11,17 @@
 
 #ifndef __OBSTACLES_H__
 #define __OBSTACLES_H__
+#include <pcl/common/common.h>
 #include <pcl/common/transforms.h>
+#include <pcl/filters/voxel_grid.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl_conversions/pcl_conversions.h>
+
 #include <Eigen/Eigen>
 #include <cmath>
 #include <memory>
+#include <string>
 #include <vector>
 
 /**
@@ -74,6 +78,14 @@ class Obstacle {
   void getCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_ptr) const {
     Eigen::Affine3f transform = Eigen::Affine3f::Identity();
     transform.translation() << position.x(), position.y(), position.z();
+    transform.rotate(q);
+    pcl::transformPointCloud(*cloud, *cloud_ptr, transform);
+  }
+
+  void getPredictedCloud(float dt, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_ptr) const {
+    Eigen::Affine3f transform = Eigen::Affine3f::Identity();
+    transform.translation() << position.x() + velocity.x() * dt, position.y() + velocity.y() * dt,
+        position.z() + velocity.z() * dt;
     transform.rotate(q);
     pcl::transformPointCloud(*cloud, *cloud_ptr, transform);
   }
@@ -173,8 +185,7 @@ class CircleGate : public Obstacle {
              const float           &thickness,
              const float           &alpha,
              const float           &theta)
-      : Obstacle(
-            p, v, Eigen::Vector3f(2 * radius * sin(theta), 2 * radius * cos(theta), 2 * radius))
+      : Obstacle(p, v, Eigen::Vector3f(thickness, 2 * radius, 2 * radius))
       , radius(radius)
       , thickness(thickness)
       , alpha(alpha)
@@ -206,6 +217,43 @@ class CircleGate : public Obstacle {
   float thickness; /* thickness of the circle */
   float alpha;     /* distance between inner and outer circle */
   float theta;
+};
+
+class PCDObstacle : public Obstacle {
+ public:
+  PCDObstacle(const Eigen::Vector3f &p, const Eigen::Vector3f &v, const std::string &file_name)
+      : Obstacle(p, v, Eigen::Vector3f(0, 0, 0)), file_name(file_name) {
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_tmp(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::io::loadPCDFile(file_name, *cloud_tmp);
+    pcl::copyPointCloud(*cloud_tmp, *cloud);
+    pcl::PointXYZ min, max;
+    pcl::getMinMax3D(*cloud, min, max);
+    size.x() = std::abs(max.x - min.x);
+    size.y() = std::abs(max.y - min.y);
+    size.z() = std::abs(max.z - min.z);
+  }
+  void render(float resolution) const override {
+    /* filter cloud */
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::VoxelGrid<pcl::PointXYZ>       sor;
+    sor.setInputCloud(cloud);
+    sor.setLeafSize(resolution, resolution, resolution);
+    sor.filter(*cloud_filtered);
+    pcl::PointXYZ min, max;
+    pcl::getMinMax3D(*cloud, min, max);
+
+    Eigen::Affine3f transform = Eigen::Affine3f::Identity();
+    transform.translation() << -0.5 * (min.x + max.x), -0.5 * (min.y + max.y),
+        -0.5 * (min.z + max.z);
+    pcl::transformPointCloud(*cloud_filtered, *cloud, transform);
+
+    cloud->width    = cloud->points.size();
+    cloud->height   = 1;
+    cloud->is_dense = true;
+  }
+
+ protected:
+  std::string file_name;
 };
 
 /* ----- Parameters ----- */
@@ -245,6 +293,11 @@ struct CircleGateConfig {
   float alpha_min{0};
   float alpha_max{0};
   float theta_max{0};
+};
+
+struct PCDObstacleConfig {
+  int         num{0};
+  std::string file_name;
 };
 
 #endif  // __OBSTACLES_H__

@@ -23,11 +23,13 @@
 #include <ros/console.h>
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <std_msgs/ByteMultiArray.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <Eigen/Eigen>
 #include <algorithm>
 #include <random>
 #include <string>
+#include <tinycolormap.hpp>
 #include <vector>
 
 class RandomDynamicMap {
@@ -36,7 +38,7 @@ class RandomDynamicMap {
   ros::Publisher  all_map_cloud_pub_;
   ros::Publisher  obstacle_vis_pub_;
   ros::Publisher  obstacle_state_pub_;
-  ros::Publisher  local_future_map_pub_;
+  ros::Publisher  future_map_pub_;
 
   /* map parameters */
   float       x_size_, y_size_, z_size_;
@@ -54,9 +56,10 @@ class RandomDynamicMap {
   int                                    num_obstacles_;
   std::vector<std::unique_ptr<Obstacle>> obstacles_;
 
-  AABBConfig       aabb_config_;
-  CylinderConfig   cylinder_config_;
-  CircleGateConfig circlegate_config_;
+  AABBConfig        aabb_config_;
+  CylinderConfig    cylinder_config_;
+  CircleGateConfig  circlegate_config_;
+  PCDObstacleConfig pcdobs_config_;
 
   /* future map */
   int   num_future_map_;
@@ -74,6 +77,7 @@ class RandomDynamicMap {
   void renderMap();
   void publishMap();
   void publishObstacleState();
+  void publishFuturePrediction();
 
   Eigen::Vector3f sampleRandomPosition();
   Eigen::Vector3f sampleRandomVelocity2D();
@@ -83,6 +87,23 @@ class RandomDynamicMap {
   inline float getSenseRate() const { return sense_rate_; }
   inline float uniformSample(float max, float min) {
     return std::uniform_real_distribution<float>(min, max)(eng_);
+  }
+
+  inline Eigen::Vector3i getMagmaColor(float value, float min, float max) {
+    float                     v     = (value - min) / (max - min);
+    const tinycolormap::Color color = tinycolormap::GetColor(v, tinycolormap::ColormapType::Magma);
+
+    int r = color.r() * 255;
+    int g = color.g() * 255;
+    int b = color.b() * 255;
+
+    // int r = value * 255;
+    // int g = (1.0 - value) * 70;
+    // int b = (value + 0.5) * 150;
+    // int r = (std::pow(v, 0.3) * 255.0);
+    // int g = ((std::pow(v, 1.5) * 170) + (std::pow((1 - v), 2.5) * 20));
+    // int b = ((1.0 - std::pow(v, 0.5)) * 200);
+    return Eigen::Vector3i(r, g, b);
   }
 };
 

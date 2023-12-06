@@ -27,6 +27,7 @@ int main(int argc, char **argv) {
   while (ros::ok()) {
     map.publishMap();
     map.publishObstacleState();
+    map.publishFuturePrediction();
     ros::spinOnce();
     rate.sleep();
   }
